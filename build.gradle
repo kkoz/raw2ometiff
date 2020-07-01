@@ -36,6 +36,7 @@ dependencies {
     implementation 'org.janelia.saalfeldlab:n5:2.2.0'
     implementation 'org.janelia.saalfeldlab:n5-blosc:1.1.0'
     implementation 'org.janelia.saalfeldlab:n5-zarr:0.0.4'
+    implementation 'org.janelia.saalfeldlab:n5-imglib2:3.4.0'
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.glencoesoftware:bioformats2raw:0.2.3-SNAPSHOT'
 }

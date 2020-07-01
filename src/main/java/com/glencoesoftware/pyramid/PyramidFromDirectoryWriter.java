@@ -22,9 +22,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.janelia.saalfeldlab.n5.DataBlock;
+import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 
 import ch.qos.logback.classic.Level;
 import org.slf4j.Logger;
@@ -49,6 +51,14 @@ import loci.formats.tiff.PhotoInterp;
 import loci.formats.tiff.TiffCompression;
 import loci.formats.tiff.TiffConstants;
 import loci.formats.tiff.TiffSaver;
+import net.imglib2.Interval;
+import net.imglib2.RandomAccess;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.Img;
+import net.imglib2.type.Type;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.view.IntervalView;
+import net.imglib2.view.Views;
 import ome.xml.meta.OMEXMLMetadataRoot;
 import ome.xml.model.Channel;
 import ome.xml.model.Pixels;
@@ -358,6 +368,52 @@ public class PyramidFromDirectoryWriter implements Callable<Void> {
     }
     return tile;
   }
+
+  /**
+   * Provide ImgLib2 Interval for the tile from the input folder.
+   *
+   * @param s current series
+   * @param resolution the pyramid level, indexed from 0 (largest)
+   * @param no the plane index
+   * @param x the tile X index, from 0 to numberOfTilesX
+   * @param y the tile Y index, from 0 to numberOfTilesY
+   * @param region specifies the width and height to read;
+                   if null, the whole tile is read
+   * @return ImgLib2 Img containing the pixels for the tile
+   */
+  private Interval getInputTileInterval(PyramidSeries s, int resolution,
+          int no, int x, int y, Region region)
+          throws FormatException, IOException
+      {
+        ResolutionDescriptor descriptor = s.resolutions.get(resolution);
+        DatasetAttributes attributes = n5Reader.getDatasetAttributes(descriptor.path);
+        DataType dataType = attributes.getDataType();
+        int xy = descriptor.tileSizeX * descriptor.tileSizeY;
+        if (region != null) {
+          xy = region.width * region.height;
+        }
+
+        int[] pos = FormatTools.rasterToPosition(s.dimensionLengths, no);
+        long[] gridPosition = new long[] {x, y, pos[0], pos[1], pos[2]};
+        UnsignedByteType type = new UnsignedByteType();
+        Img img = N5Utils.open(n5Reader, descriptor.path);
+        /*
+        RandomAccessibleInterval<T> image = N5Utils.open(n5Reader, descriptor.path);
+        RandomAccess<? extends Type<?>> accessor = image.randomAccess();
+        */
+        long[] dims = attributes.getDimensions();
+        long[] topLeft = new long[attributes.getNumDimensions()];
+        Arrays.fill(topLeft, 0);
+        topLeft[0] = x*descriptor.tileSizeX;
+        topLeft[1] = y*descriptor.tileSizeY;
+        long[] tileSize = new long[attributes.getNumDimensions()];
+        Arrays.fill(tileSize, 1);
+        tileSize[0] = Math.min(descriptor.tileSizeX, dims[0] - topLeft[0]);
+        tileSize[1] = Math.min(descriptor.tileSizeY, dims[1] - topLeft[1]) ;
+        IntervalView interval = Views.offsetInterval(img, topLeft, tileSize);
+
+        return interval;
+      }
 
   /**
    * Calculate image width and height for each resolution.
