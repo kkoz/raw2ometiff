@@ -56,7 +56,9 @@ import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.type.Type;
+import net.imglib2.type.numeric.integer.GenericByteType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import ome.xml.meta.OMEXMLMetadataRoot;
@@ -387,7 +389,6 @@ public class PyramidFromDirectoryWriter implements Callable<Void> {
       {
         ResolutionDescriptor descriptor = s.resolutions.get(resolution);
         DatasetAttributes attributes = n5Reader.getDatasetAttributes(descriptor.path);
-        DataType dataType = attributes.getDataType();
         int xy = descriptor.tileSizeX * descriptor.tileSizeY;
         if (region != null) {
           xy = region.width * region.height;
@@ -413,6 +414,19 @@ public class PyramidFromDirectoryWriter implements Callable<Void> {
         IntervalView interval = Views.offsetInterval(img, topLeft, tileSize);
 
         return interval;
+      }
+
+  public Img getInputTileImage(PyramidSeries s, int resolution,
+          int no, int x, int y, Region region)
+          throws FormatException, IOException
+      {
+        ResolutionDescriptor descriptor = s.resolutions.get(resolution);
+        DatasetAttributes attributes = n5Reader.getDatasetAttributes(descriptor.path);
+        DataType dataType = attributes.getDataType();
+        OmeroN5Utils utils = OmeroN5UtilsFactory.getUtils(dataType);
+        int[] pos = FormatTools.rasterToPosition(s.dimensionLengths, no);
+        return utils.getTileImage(n5Reader, descriptor.tileSizeX, descriptor.tileSizeY,
+            descriptor.path, no, pos, x, y, region);
       }
 
   /**
@@ -759,6 +773,7 @@ public class PyramidFromDirectoryWriter implements Callable<Void> {
                   int planeIndex = plane * rgbChannels + ch;
                   tileBytes =
                     getInputTileBytes(s, resolution, planeIndex, x, y, region);
+                    Interval interval = getInputTileInterval(s, resolution, planeIndex, x, y, region);
                 }
                 finally {
                   t0.stop();
