@@ -10,31 +10,31 @@ public class OmeroN5UtilsFactory {
                 return new OmeroN5UnsignedByteUtils();
             case UINT16:
                 System.out.println("UINT16");
-                break;
+                return new OmeroN5UnsignedShortUtils();
             case UINT32:
                 System.out.println("UINT32");
-                break;
+                return new OmeroN5UnsignedIntUtils();
             case UINT64:
                 System.out.println("UINT64");
-                break;
+                return new OmeroN5UnsignedLongUtils();
             case INT8:
                 System.out.println("INT8");
-                break;
+                return new OmeroN5ByteUtils();
             case INT16:
                 System.out.println("INT16");
-                break;
+                return new OmeroN5ShortUtils();
             case INT32:
                 System.out.println("INT32");
-                break;
+                return new OmeroN5IntUtils();
             case INT64:
                 System.out.println("INT64");
-                break;
+                return new OmeroN5LongUtils();
             case FLOAT32:
                 System.out.println("FLOAT32");
-                break;
+                return new OmeroN5FloatUtils();
             case FLOAT64:
                 System.out.println("FLOAT64");
-                break;
+                return new OmeroN5DoubleUtils();
         }
         return null;
     }
