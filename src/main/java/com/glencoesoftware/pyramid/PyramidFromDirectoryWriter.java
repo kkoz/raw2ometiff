@@ -52,7 +52,6 @@ import loci.formats.tiff.TiffCompression;
 import loci.formats.tiff.TiffConstants;
 import loci.formats.tiff.TiffSaver;
 import net.imglib2.Interval;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.type.Type;
@@ -395,8 +394,6 @@ public class PyramidFromDirectoryWriter implements Callable<Void> {
         }
 
         int[] pos = FormatTools.rasterToPosition(s.dimensionLengths, no);
-        long[] gridPosition = new long[] {x, y, pos[0], pos[1], pos[2]};
-        UnsignedByteType type = new UnsignedByteType();
         Img img = N5Utils.open(n5Reader, descriptor.path);
         /*
         RandomAccessibleInterval<T> image = N5Utils.open(n5Reader, descriptor.path);
@@ -423,10 +420,24 @@ public class PyramidFromDirectoryWriter implements Callable<Void> {
         ResolutionDescriptor descriptor = s.resolutions.get(resolution);
         DatasetAttributes attributes = n5Reader.getDatasetAttributes(descriptor.path);
         DataType dataType = attributes.getDataType();
+        RandomAccessibleInterval<?> source = N5Utils.open(n5Reader, descriptor.path);
         OmeroN5Utils utils = OmeroN5UtilsFactory.getUtils(dataType);
         int[] pos = FormatTools.rasterToPosition(s.dimensionLengths, no);
         return utils.getTileImage(n5Reader, descriptor.tileSizeX, descriptor.tileSizeY,
             descriptor.path, no, pos, x, y, region);
+      }
+
+  public Img getInputTileImage2(PyramidSeries s, int resolution,
+          int no, int x, int y, Region region)
+          throws FormatException, IOException
+      {
+        ResolutionDescriptor descriptor = s.resolutions.get(resolution);
+        DatasetAttributes attributes = n5Reader.getDatasetAttributes(descriptor.path);
+        DataType dataType = attributes.getDataType();
+        Img<?> source = N5Utils.open(n5Reader, descriptor.path);
+        OmeroN5Utils utils = new OmeroN5Utils();
+        int[] pos = FormatTools.rasterToPosition(s.dimensionLengths, no);
+        return utils.getTileImgCopy(source, dataType, descriptor.tileSizeX, descriptor.tileSizeY, pos, x, y, region);
       }
 
   /**
@@ -774,6 +785,8 @@ public class PyramidFromDirectoryWriter implements Callable<Void> {
                   tileBytes =
                     getInputTileBytes(s, resolution, planeIndex, x, y, region);
                     Interval interval = getInputTileInterval(s, resolution, planeIndex, x, y, region);
+                    Img img = getInputTileImage(s, resolution, planeIndex, planeIndex, y, region);
+                    Img img2 = getInputTileImage2(s, resolution, planeIndex, planeIndex, y, region);
                 }
                 finally {
                   t0.stop();

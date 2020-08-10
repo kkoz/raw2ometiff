@@ -38,5 +38,4 @@ public class OmeroN5UtilsFactory {
         }
         return null;
     }
-
 }
